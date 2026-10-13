@@ -1,0 +1,31 @@
+/build/
+/dist/
+*.nkp
+*.wav
+*.pcm
+contract-test-results.json
+/test-artifacts/
+
+# Publication scope: keep project documents local; publish only root README.
+/docs/
+*.md
+!/README.md
+/.obsidian/
+
+# Local tool settings, credentials and generated binaries are not source.
+/.vs/
+/out/
+CMakeUserPresets.json
+.env
+.env.*
+*.key
+*.pem
+*.pfx
+*.p12
+*.exe
+*.dll
+*.obj
+*.lib
+*.pdb
+*.ilk
+*.zip
