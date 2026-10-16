@@ -46,4 +46,6 @@ if (-not $SkipTests) {
     Invoke-TaskNative $taskCtest @('--test-dir',$taskBuild,'-C',$Configuration,'--output-on-failure')
 }
 Write-Host "User-mode engineering build: $taskBuild\$Configuration\NoiseKiller.exe"
+Write-Host "Electron native control host: $taskBuild\$Configuration\NoiseKiller.Host.exe"
+Write-Host 'Desktop frontend: scripts/start-electron.ps1 (requires project-local Electron dependencies). The Win32 GUI remains a fallback.'
 Write-Host 'Current route: MECAG -> WASAPI render -> separately installed third-party cable. No kernel driver/Broker is built or installed; G1/G2/G3 acceptance is not certified.'

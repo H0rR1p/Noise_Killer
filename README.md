@@ -2,9 +2,42 @@
 
 依据当前 v0.5 需求与架构构建的 Windows 用户态工程版本。当前路线已改为 **物理麦克风 → MECAG → WASAPI 播放 → 已安装第三方虚拟线路 → 游戏/通信应用**。不自建内核驱动，不需要为本项目安装 WDK、创建驱动测试 VM 或取得自有驱动签名；用户仍须另行安装、配置第三方线路。算法重叠目标保留及实际线路消费者验收仍未通过，不能称已完成 G3。
 
-2026-10-13 工程状态：原 58 项冻结合成回归全部通过；新增独立生成信号开发回归为 43/47，仍有 4 项旁人/缺席抑制失败，探索检查 7/9。51 项核心契约、其他控制/输出检查及无采集冒烟通过，CTest 总体 **5/6，未全通过**。强干扰例目标保留从 71.65% 降至 70.38%，同 F0 旁人抑制仅 −5.34 dB，未达 −20 dB；不能称全面改善。当前源码是未验收研发原型，不发布通过版 ZIP。
+2026-10-13 音频验收基线：原 58 项冻结合成回归全部通过；新增独立生成信号开发回归为 43/47，仍有 4 项旁人/缺席抑制失败，探索检查 7/9。51 项核心契约、其他控制/输出检查及无采集冒烟通过，当时 CTest 总体 **5/6，未全通过**。强干扰例目标在场检出率从 71.65% 降至 70.38%，同 F0 旁人抑制仅 −5.34 dB，未达 −20 dB；不能称全面改善。当前源码是未验收研发原型，不发布通过版 ZIP。
 
-当前 FeatureSchema 仍为 **3**，已有有效 schema 3 档案无需因本轮重录；旧版 1/2 必须显式重新注册，不自动改写、降级或静默迁移。算法版本 `0.2.4-mecag-g1-partial-harmonic-hypotheses`，应用工程版本 `0.2.2`，二者分别记录。
+当前 FeatureSchema 仍为 **3**，已有有效 schema 3 档案无需因本轮重录；旧版 1/2 必须显式重新注册，不自动改写、降级或静默迁移。算法版本 `0.2.4-mecag-g1-partial-harmonic-hypotheses`，桌面工程版本 `0.3.0`，二者分别记录。2026-10-16 新增 Electron 黑白桌面界面，只更换控制前端，没有修改 MECAG 算法或宣称解决上述质量失败。
+
+## Electron 桌面界面
+
+简约黑白工作台，提供本人注册、物理输入与虚拟线路选择、启停、离线 WAV、运行诊断、线路指南及明暗外观。Electron 只负责界面和低频命令/状态；采集、MECAG 和播放仍在独立的原生 `NoiseKiller.Host.exe` 进程运行。PCM、频谱和本人模型参数不进入 renderer，不引入云服务或逐帧 HTTP 调用。
+
+首次准备需要 Node.js 22.12+（建议受支持的 LTS）、PowerShell 7、原生构建环境及联网下载项目内开发依赖：
+
+```powershell
+.\scripts\build.ps1 -SkipTests
+Set-Location .\electron
+npm ci
+npx install-electron
+npm start
+```
+
+已安装依赖后，可从项目根目录运行 `.\scripts\start-electron.ps1`。`npm ci` 按锁文件安装依赖；`install-electron` 安装固定的 Electron 44.8.0 运行时（若已有则复用），校验下载包，不安装系统组件。依赖及运行时安装完成后，应用可离线运行。
+
+两个设备初始均不自动选择，启动也不会录音。只有显式注册录音或开启处理才会打开物理麦克风。原声旁路和删除档案有原生确认；关闭窗口、引擎故障或界面崩溃时停止自身音频，不自动重启或回退原音。注册继续使用当前用户 DPAPI 档案 `NoiseKiller/active-profile.nkp`，与原 Win32 GUI 共用；不要同时用两个界面操作同一个档案。
+
+安全边界：固定本地 `nk-app://ui` 资源、renderer sandbox、context isolation、关闭 Node integration、IPC 白名单及发送者校验、拒绝浏览器麦克风权限和外部导航。文件路径由主进程文件选择器取得；离线输出不会覆盖已有文件。桌面文件任务目前限制输入 64 MiB、参考音 10–30 秒、离线处理不超过 10 分钟。
+
+```powershell
+# 在 electron/ 中：控制桥与安全测试（不访问麦克风）
+npm test
+# 真实 Host + 合成文件联调（先从 build/ 运行核心测试生成 test-artifacts）
+npm run test:host
+# 需要 Playwright 的真实 Electron 无采集界面测试
+npm run test:ui
+# 可选：不覆盖旧目录的本地桌面预览，不是音频质量通过版
+npm run package:preview
+```
+
+`package:preview` 生成 `dist/NoiseKiller-Desktop-0.3.0-preview/NoiseKiller.exe`，保留 Electron/Chromium 许可文件，不包含驱动、录音、档案或私有文档；不替代完整测试与发布门禁。原 `scripts/package.ps1` 仍要求全部 CTest 通过，不因界面更新放宽。
 
 ## 线路接入
 

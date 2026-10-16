@@ -1,0 +1,30 @@
+'use strict';
+
+// Local engineering preview only. Does not bypass the full-release test gate.
+const fs = require('node:fs');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
+const root = path.resolve(__dirname, '..');
+const host = path.join(root, 'build', 'Release', 'NoiseKiller.Host.exe');
+const manifest = require('./package.json');
+const destination = path.join(root, 'dist', `NoiseKiller-Desktop-${manifest.version}-preview`);
+if (process.platform !== 'win32') throw new Error('The native audio host currently supports Windows only');
+if (!fs.existsSync(host)) throw new Error('Build NoiseKiller.Host before preparing a local preview');
+if (fs.existsSync(destination)) throw new Error('Preview already exists; it will not be overwritten');
+const tests = spawnSync(process.execPath, ['--test', 'test/bridge.test.cjs', 'test/main-security.test.cjs'], { cwd: __dirname, stdio: 'inherit', windowsHide: true });
+if (tests.status !== 0) process.exit(tests.status || 1);
+const check = spawnSync(host, ['--smoke'], { encoding: 'utf8', windowsHide: true });
+if (check.status !== 0 || JSON.parse(check.stdout).result.session.state !== 'stopped') throw new Error('Native no-capture smoke failed');
+const electronExe = require('electron');
+fs.cpSync(path.dirname(electronExe), destination, { recursive: true, errorOnExist: true });
+fs.renameSync(path.join(destination, 'electron.exe'), path.join(destination, 'NoiseKiller.exe'));
+const appFolder = path.join(destination, 'resources', 'app');
+fs.mkdirSync(appFolder, { recursive: true });
+for (const file of ['main.cjs', 'preload.cjs', 'bridge.cjs', 'package.json']) fs.copyFileSync(path.join(__dirname, file), path.join(appFolder, file));
+fs.cpSync(path.join(__dirname, 'renderer'), path.join(appFolder, 'renderer'), { recursive: true });
+const nativeFolder = path.join(destination, 'resources', 'native');
+fs.mkdirSync(nativeFolder, { recursive: true });
+fs.copyFileSync(host, path.join(nativeFolder, 'NoiseKiller.Host.exe'));
+fs.copyFileSync(path.join(root, 'README.md'), path.join(destination, 'README.md'));
+fs.writeFileSync(path.join(destination, 'ENGINEERING-PREVIEW.txt'), 'Local UI engineering preview. Not a quality-accepted release.\r\nKnown independent synthetic audio regressions remain; no driver is included.\r\nNo audio is captured until an explicit user action.\r\nElectron/Chromium notices are retained in this directory.\r\n', { flag: 'wx' });
+console.log(`Local preview (not an accepted release): ${path.join(destination, 'NoiseKiller.exe')}`);

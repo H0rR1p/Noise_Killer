@@ -15,6 +15,9 @@ contract-test-results.json
 # Local tool settings, credentials and generated binaries are not source.
 /.vs/
 /out/
+/electron/node_modules/
+/electron/.cache/
+/electron/test-artifacts/
 CMakeUserPresets.json
 .env
 .env.*
